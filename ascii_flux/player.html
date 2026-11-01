@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050607">
+  <title>ASCII Flux</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050607'/%3E%3Ctext x='16' y='24' text-anchor='middle' fill='%23a7e6cc' font-family='monospace' font-size='25'%3E%40%3C/text%3E%3C/svg%3E">
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #000; color: #e8edea; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100svh; overflow: hidden; display: flex; flex-direction: column; }
+    header { position: absolute; inset: 25px 30px auto; z-index: 1; display: flex; align-items: center; gap: 12px; pointer-events: none; }
+    .brand { font-size: 12px; font-weight: 600; letter-spacing: .18em; color: #b0b9b4; }
+    .badge { padding: 4px 7px; border: 1px solid #242b27; border-radius: 5px; color: #6c7870; font-size: 10px; }
+    main { flex: 1; min-height: 0; position: relative; }
+    canvas { display: block; width: 100%; height: 100%; }
+    footer { padding: 8px 24px max(24px, env(safe-area-inset-bottom)); }
+    .bar { display: flex; align-items: center; gap: 12px; max-width: 880px; margin: auto; padding: 9px 10px 9px 19px; border: 1px solid #2a332e; border-radius: 17px; background: #101411; box-shadow: 0 9px 40px #0006; transition: border-color .15s; }
+    .bar:focus-within { border-color: #5e8170; }
+    .prefix { font: 20px ui-monospace, monospace; color: #6ba98a; user-select: none; }
+    input { flex: 1; min-width: 0; height: 38px; padding: 0; border: 0; outline: 0; background: transparent; color: #edf5ef; font: 16px system-ui, sans-serif; }
+    input::placeholder { color: #737e77; }
+    button { flex-shrink: 0; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: #7d8c82; cursor: pointer; }
+    button:hover { background: #202b24; color: #d0eadb; }
+    button:focus-visible { outline: 2px solid #7fb899; outline-offset: 2px; }
+    button svg { width: 18px; height: 18px; }
+    .state { max-width: 850px; min-height: 25px; margin: 9px auto 0; display: flex; align-items: center; gap: 7px; color: #717c75; font-size: 11px; }
+    .dot { width: 5px; height: 5px; border-radius: 50%; background: #61766a; }
+    body[data-state="live"] .dot { background: #8dbb9e; }
+    body[data-state="updating"] .dot { background: #d0bd86; }
+    body[data-state="offline"] .dot { background: #c98077; }
+    @media (max-width: 600px) { header { inset: 18px 20px auto; } footer { padding-left: 14px; padding-right: 14px; } .bar { padding-left: 14px; gap: 9px; } input { font-size: 16px; } }
+  </style>
+</head>
+<body data-state="connecting">
+  <header><span class="brand">ASCII FLUX</span><span class="badge">Expérimental</span></header>
+  <main><canvas id="grid" aria-label="Animation ASCII générée en direct"></canvas></main>
+  <footer>
+    <div class="bar">
+      <span class="prefix" aria-hidden="true">›</span>
+      <input id="prompt" type="text" aria-label="Décris ce que tu veux voir" placeholder="Décris ce que tu veux voir…" maxlength="2000" autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+      <button id="reset" type="button" aria-label="Recommencer l’animation" title="Recommencer l’animation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a8 8 0 1 1 .9 6M4 4v6h6"/></svg>
+      </button>
+    </div>
+    <div class="state" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="status">Connexion au modèle…</span></div>
+  </footer>
+  <script>
+    const canvas = document.getElementById('grid');
+    const context = canvas.getContext('2d');
+    const input = document.getElementById('prompt');
+    const status = document.getElementById('status');
+    const client = crypto.randomUUID();
+    let contract, palette, frame, seen = -1, sequence = 0, sentSequence = -1;
+    let sending = false, connected = false, dirty = true, width = 0, height = 0, ratio = 1;
+
+    function indicate(state, message) {
+      document.body.dataset.state = state;
+      if (status.textContent !== message) status.textContent = message;
+    }
+
+    async function request(path, body) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      try {
+        const response = await fetch(path, body === undefined
+          ? {cache: 'no-store', signal: controller.signal}
+          : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body), signal: controller.signal});
+        const value = await response.json();
+        if (!response.ok) throw Error(value.error || 'Connexion impossible');
+        return value;
+      } finally { clearTimeout(timeout); }
+    }
+
+    // Send immediately. Serialize requests, keeping the most recent keystroke
+    // if typing outpaces the network; never let an old request replace it.
+    async function sendInput() {
+      if (sending || !connected) return;
+      sending = true;
+      try {
+        while (sentSequence < sequence) {
+          const current = sequence;
+          await request('/prompt', {prompt: input.value, client, sequence: current});
+          sentSequence = current;
+        }
+      } catch (_) {
+        connected = false;
+        indicate('offline', 'Reconnexion au modèle…');
+      } finally { sending = false; }
+    }
+
+    input.addEventListener('input', () => {
+      sequence++;
+      indicate('updating', 'Mise à jour…');
+      sendInput();
+    });
+    document.getElementById('reset').addEventListener('click', async () => {
+      try { await request('/reset', {}); }
+      catch (_) { indicate('offline', 'Reconnexion au modèle…'); }
+      input.focus();
+    });
+
+    function resize() {
+      const bounds = canvas.getBoundingClientRect();
+      width = bounds.width; height = bounds.height;
+      ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      dirty = true;
+    }
+    new ResizeObserver(resize).observe(canvas);
+    window.addEventListener('resize', resize);
+
+    function paint() {
+      if (dirty) {
+        dirty = false;
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, width, height);
+        if (frame && contract) {
+          const cell = Math.min((width - 32) / contract.cols, Math.max(1, height - 68) / (contract.rows * contract.cell_height_width));
+          const row = cell * contract.cell_height_width;
+          const left = (width - cell * contract.cols) / 2;
+          const top = (height - row * contract.rows) / 2 + 15;
+          context.font = `${row * .92}px "Cascadia Mono", Consolas, ui-monospace, monospace`;
+          context.textAlign = 'center'; context.textBaseline = 'middle';
+          for (let r = 0; r < contract.rows; r++) for (let c = 0; c < contract.cols; c++) {
+            const glyph = frame.glyphs[r][c];
+            if (glyph === 0) continue;
+            context.fillStyle = palette[frame.colors[r][c]];
+            context.fillText(contract.glyphs[glyph], left + (c + .5) * cell, top + (r + .5) * row, cell * .98);
+          }
+        }
+      }
+      requestAnimationFrame(paint);
+    }
+
+    async function frames() {
+      const started = performance.now();
+      try {
+        if (!connected) {
+          const info = await request('/config');
+          contract = info.contract;
+          palette = contract.palette.map(rgb => `rgb(${rgb.join(',')})`);
+          connected = true; seen = -1;
+          sentSequence = -1;
+          sendInput();
+        }
+        const next = await request('/frame');
+        if (next.steps !== seen) { frame = next; seen = next.steps; dirty = true; }
+        if (next.error) indicate('offline', 'Le modèle a rencontré une erreur.');
+        else if (next.input_client !== client || next.input_sequence !== sequence || next.applied_revision !== next.revision) {
+          indicate('updating', 'Mise à jour…');
+        } else indicate('live', input.value ? 'En direct' : 'Écris pour commencer');
+      } catch (_) {
+        connected = false;
+        indicate('offline', 'Reconnexion au modèle…');
+      }
+      setTimeout(frames, connected ? Math.max(0, 1000 / 24 - (performance.now() - started)) : 750);
+    }
+    resize(); paint(); frames();
+  </script>
+</body>
+</html>

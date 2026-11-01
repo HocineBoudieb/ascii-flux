@@ -1,0 +1,12 @@
+{
+  "source": "YouTube-VIS",
+  "synthetic": false,
+  "snapshot": "REPLACE_WITH_EXACT_DATASET_RELEASE",
+  "url": "https://youtube-vos.org/dataset/vis/",
+  "terms_url": "https://youtube-vos.org/dataset/term/",
+  "terms_checked_on": "2026-10-31",
+  "annotations_license": "CC-BY-4.0",
+  "media_conditions": "Non-commercial research only; videos retain their underlying rights. Consult the complete source terms.",
+  "usage_scope": "non-commercial-research",
+  "local_media_provenance": "REPLACE_WITH_DOWNLOAD_OR_ARCHIVE_ORIGIN"
+}

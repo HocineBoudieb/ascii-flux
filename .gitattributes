@@ -1,0 +1,3 @@
+# Checkpoint provenance hashes the exact source bytes. Preserve line endings.
+* -text
+*.ipynb linguist-generated=true

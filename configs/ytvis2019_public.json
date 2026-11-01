@@ -1,0 +1,28 @@
+{
+  "profile": "ytvis-2019-public-1",
+  "checked_on": "2026-10-31",
+  "annotations": {
+    "url": "https://www.kaggle.com/api/v1/datasets/download/farnoosharefi/youtube-vis-train2019?datasetVersionNumber=1",
+    "page": "https://www.kaggle.com/datasets/farnoosharefi/youtube-vis-train2019",
+    "version": 1,
+    "sha256": "78a0cc867a1861be800c80fc55ccacb9008ca77af2a38016250faefd40a6f2ef",
+    "bytes": 64197762,
+    "format": "meta+sequences; per-object COCO RLE masks; 2238 sequences",
+    "host_license_declaration": "Unknown; does not replace the original YouTube-VIS conditions"
+  },
+  "frames": {
+    "url": "https://huggingface.co/datasets/yinloonga/YouTube_VOS_2019/resolve/7a0eb80c729b0dbbceaea15950e86ed606ab21ed/train.tar?download=true",
+    "page": "https://huggingface.co/datasets/yinloonga/YouTube_VOS_2019",
+    "revision": "7a0eb80c729b0dbbceaea15950e86ed606ab21ed",
+    "sha256": "5a81246005cfc2245bcd1f7e8fff41868963dfc3873e92bb810ea5f35a7cf8c0",
+    "bytes": 9258444800,
+    "format": "uncompressed TAR; original YouTube-VOS source frames",
+    "host_license_declaration": "Not declared; original YouTube-VOS/VIS research conditions retained"
+  },
+  "source_fps": 6.0,
+  "frame_stride_at_30fps": 5,
+  "terms_url": "https://youtube-vos.org/dataset/term/",
+  "annotations_license": "CC-BY-4.0",
+  "usage_scope": "non-commercial-research",
+  "cadence_evidence": "https://arxiv.org/html/1905.04804v2#S4"
+}

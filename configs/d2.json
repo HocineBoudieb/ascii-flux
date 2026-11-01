@@ -1,0 +1,20 @@
+{
+  "dataset_version": "ytvis-d2-ramp-1",
+  "target_grids": 1000000,
+  "horizontal_flip": true,
+  "shard_size": 25,
+  "seed": 20261031,
+  "heldout_categories": ["giraffe", "airplane"],
+  "converter": {
+    "margin": 0.15, "smoothing": 0.25, "gamma": 0.8,
+    "hysteresis": 0.7, "saturation": 1.15, "min_coverage": 0.12
+  },
+  "quality": {
+    "calibrated": true,
+    "calibration_scope": "initial cutoffs from D1 distribution after user's global visual acceptance; not a per-clip human acceptance",
+    "calibration_sample_fingerprint": "b0789e95db9b6c560b26f0b68ec8057b03758097cc18f1d7e4e59f12ac861188",
+    "min_occupancy": 0.02, "max_occupancy": 0.65,
+    "min_subject_cells": 8, "max_compensated_change": 0.6,
+    "min_mask_fraction": 0.95, "max_residual_camera_motion": null
+  }
+}

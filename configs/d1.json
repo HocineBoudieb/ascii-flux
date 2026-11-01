@@ -1,0 +1,25 @@
+{
+  "dataset_version": "ytvis-d1-ramp-1",
+  "max_clips": 200,
+  "shard_size": 25,
+  "seed": 20261031,
+  "heldout_categories": ["giraffe", "airplane"],
+  "converter": {
+    "margin": 0.15,
+    "smoothing": 0.25,
+    "gamma": 0.8,
+    "hysteresis": 0.7,
+    "saturation": 1.15,
+    "min_coverage": 0.12
+  },
+  "quality": {
+    "calibrated": false,
+    "min_occupancy": null,
+    "max_occupancy": null,
+    "min_subject_cells": null,
+    "max_compensated_change": null,
+    "min_mask_fraction": null,
+    "max_residual_camera_motion": null
+  }
+}
+

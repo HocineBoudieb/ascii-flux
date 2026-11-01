@@ -1,0 +1,38 @@
+# Local environments and generated artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv*/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# Corpora, model caches and release staging stay local.
+/data/
+/runs/
+/outputs/
+/ascii_flux_v5_colab/
+/ascii_flux_v42/
+/ASCII_Flux_OpenVocabulary*.ipynb
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.bin
+*.tar
+*.zip
+*.log
+*.partial
+*.tmp
+
+# Credentials and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+/CLAUDE.MD
+

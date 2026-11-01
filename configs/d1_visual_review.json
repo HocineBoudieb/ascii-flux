@@ -1,0 +1,8 @@
+{
+  "reviewer": "Utilisateur (confirmation dans le chat du 2026-10-31)",
+  "human_statement": "Oui, globalement reconnaissables",
+  "sample_dataset_fingerprint": "b0789e95db9b6c560b26f0b68ec8057b03758097cc18f1d7e4e59f12ac861188",
+  "scope": "Global visual acceptance of the D1 converter sample, not acceptance of every clip or validation of trained model recognition",
+  "inspected_clip_count": null,
+  "initial_quality_policy": "configs/d2.json"
+}

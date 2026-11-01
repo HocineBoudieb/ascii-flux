@@ -1,0 +1,22 @@
+{
+  "annotations_url": "https://drive.google.com/file/d/1k-o8gBMD7m1-fghw-a1iNDZCi2ZZgV9g/view?usp=sharing",
+  "annotations_sha256": "17ff02672040ee83f17cb9f9e1c94707769ed6c07ea730421a1185202d7731d5",
+  "frames_url": "https://drive.google.com/file/d/1er2lBQLF75TI5O4wzGyur0YYoohMK6C3/view?usp=sharing",
+  "frames_sha256": "4134387d491df5c9b9637d2b42fa7240ab93a176d79d1f7d38ed803682878324",
+  "source_fps": 5.0,
+  "source": {
+    "source": "LV-VIS",
+    "snapshot": "official current training annotations 17ff02672040 + frames 4134387d491d, retrieved 2026-10-31",
+    "url": "https://github.com/haochenheheda/LVVIS",
+    "terms_url": "https://github.com/haochenheheda/LVVIS/blob/main/README.md",
+    "terms_checked_on": "2026-10-31",
+    "annotations_license": "CC-BY-NC-SA-4.0",
+    "media_conditions": "CC BY-NC-SA 4.0; released for non-commercial research only; retain original attribution and conditions",
+    "usage_scope": "non-commercial-research",
+    "cadence_evidence": {
+      "url": "https://arxiv.org/abs/2304.01715",
+      "section": "LV-VIS dataset collection: extract 5 frames per second from videos of 2 to 10 seconds",
+      "source_fps": 5.0
+    }
+  }
+}

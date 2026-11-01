@@ -1,0 +1,19 @@
+{
+  "steps": 20000,
+  "batch_size": 8,
+  "gradient_accumulation": 1,
+  "precision": "float16",
+  "foreground_weight": 4.0,
+  "lr": 0.0003,
+  "emergence_steps": 8,
+  "rollout_frames": 4,
+  "steps_per_frame": 2,
+  "transition_steps": 8,
+  "long_every": 100,
+  "long_steps": 512,
+  "long_grad_steps": 8,
+  "validate_every": 100,
+  "val_batches": 8,
+  "teacher_decay_steps": 5000,
+  "seed": 20261031
+}

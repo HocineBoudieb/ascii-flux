@@ -1,0 +1,17 @@
+{
+  "reviewer": "user",
+  "reviewed_on": "2026-10-31",
+  "scope": "eight horse frames from the D2 corpus, not a per-clip acceptance or a model recognition evaluation",
+  "human_statement": "Oui, la majorité est lisible",
+  "dataset_fingerprint": "66b3dd8ab55cc13f577a194c5837dfb1059df94a9a772f39eda6186bbb919c8c",
+  "gallery": "outputs/subject-audit-001/horse.png",
+  "frame_index": 12,
+  "gallery_clip_ids": [
+    "clip-e9132320cd3a11550419c19a9d4cd0b7", "clip-83f88c71f7ec83fbc69ed9ad0bcb446a",
+    "clip-3fc46f1249a5e6634e089a6abae01b6e", "clip-78b4fa0a98a961591cf4b155dc2ec72d",
+    "clip-5f80f053649c96259cf7b48b1482b9e7", "clip-7735cff29b9832369b14fbd592b157ee",
+    "clip-0dd7420ffdd07e53f88dab4da6b92716", "clip-9415841a948fb5062a9df55d6a59ef1f"
+  ],
+  "per_clip_decisions": {},
+  "model_recognition_validated": false
+}

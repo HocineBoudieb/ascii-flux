@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASCII Flux v5 — revue D1</title>
+<style>
+body{background:#101318;color:#eee;font:16px system-ui;margin:24px;max-width:1250px}
+button,input,select{font:inherit;padding:7px;margin:4px;background:#202936;color:#eee;border:1px solid #56647a;border-radius:4px}
+canvas{background:black;max-width:100%;display:block;margin:12px 0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.warning{color:#ffc66d}
+#status,#counts,#frame-position{color:#a9c9df}label{display:inline-block}details{margin-top:16px}
+</style>
+<h1>Revue humaine D1</h1>
+<p class="warning">Clips du convertisseur hors ligne. Ce lecteur ne démontre aucune génération par un modèle.</p>
+<label>Relecteur <input id="reviewer" aria-label="Relecteur"></label>
+<button id="prev">Précédent</button><button id="next">Suivant</button><button id="pause">Pause</button>
+<label>Clip <select id="clip-select" aria-label="Clip"></select></label>
+<p id="position"></p>
+<p id="status">Chargement… Si aucune animation n'apparaît, ouvrir ce fichier HTML directement dans un navigateur.</p>
+<canvas id="grid" aria-label="Animation ASCII du clip sélectionné"></canvas><span id="frame-position"></span>
+<div>
+<label>Décision <select id="decision"><option value="pending">À revoir</option><option value="accept">Accepter</option><option value="reject">Rejeter</option></select></label>
+<label>Motif <input id="reason" size="42" placeholder="Lisibilité, scintillement, masque…"></label>
+</div>
+<p id="counts"></p>
+<button id="download">Exporter reviews.json</button><label>Reprendre une revue <input id="import" type="file" accept="application/json"></label>
+<p>Examiner la forme, le masque et le mouvement. Exporter les décisions avant de quitter le lecteur.
+La calibration des seuils suit cette revue ; aucune décision n'est préremplie comme acceptée.</p>
+<details><summary>Métadonnées, provenance et métriques du clip</summary><pre id="meta"></pre></details>
+<noscript>Ce lecteur nécessite JavaScript. Ouvrir le fichier HTML dans un navigateur.</noscript>
+<script>
+const data=__DATA__;
+const $=id=>document.getElementById(id),ctx=$('grid').getContext('2d');
+const decisions=Object.fromEntries(data.clips.map(c=>[c.id,{decision:'pending',reason:''}]));
+const storageKey='ascii-flux-review-'+data.fingerprint;
+const cells=data.contract.rows*data.contract.cols,tokenCount=data.contract.frames*cells;
+const cw=10,ch=cw*data.contract.cell_height_width;
+let index=0,frame=0,playing=true,currentTokens=null,loadVersion=0;
+const cache=new Map();
+$('grid').width=cw*data.contract.cols;$('grid').height=ch*data.contract.rows;
+
+function reviewValue(){return {dataset_fingerprint:data.fingerprint,converter_hash:data.converter_hash,reviewer:$('reviewer').value.trim(),decisions};}
+function restoreReview(value){
+  if(value.dataset_fingerprint!==data.fingerprint||value.converter_hash!==data.converter_hash)throw Error('Cette revue appartient à un autre corpus ou convertisseur.');
+  for(const [key,v] of Object.entries(value.decisions||{})){
+    if(Object.hasOwn(decisions,key)&&v&&['pending','accept','reject'].includes(v.decision)&&typeof v.reason==='string')decisions[key]={decision:v.decision,reason:v.reason};
+  }
+  $('reviewer').value=typeof value.reviewer==='string'?value.reviewer:'';
+}
+function save(){
+  try{localStorage.setItem(storageKey,JSON.stringify(reviewValue()));}catch(error){/* Export remains available when browser storage is disabled. */}
+  const values=Object.values(decisions);
+  $('counts').textContent=`${values.filter(v=>v.decision==='accept').length} acceptés · ${values.filter(v=>v.decision==='reject').length} rejetés · ${values.filter(v=>v.decision==='pending').length} à revoir`;
+}
+async function unpackClip(clip){
+  if(data.codec!=='gzip-u8-glyphs-colors-1')throw Error('Format de lecteur inconnu.');
+  if(typeof DecompressionStream==='undefined')throw Error('Ce navigateur ne prend pas en charge la décompression. Ouvrir ce fichier dans une version récente de Chrome, Edge ou Firefox.');
+  const packed=Uint8Array.from(atob(clip.tokens_gzip),c=>c.charCodeAt(0));
+  const stream=new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'));
+  const tokens=new Uint8Array(await new Response(stream).arrayBuffer());
+  if(tokens.length!==tokenCount*2)throw Error('Longueur des jetons du clip incorrecte.');
+  return tokens;
+}
+async function show(){
+  const version=++loadVersion;currentTokens=null;
+  ctx.fillStyle='black';ctx.fillRect(0,0,$('grid').width,$('grid').height);
+  if(!data.clips.length){$('status').textContent='Aucun clip retenu par les contrôles automatiques.';return;}
+  const clip=data.clips[index];
+  $('position').textContent=`${index+1}/${data.clips.length} — ${clip.metadata.original_label||clip.metadata.normalized_label||clip.id}`;
+  $('clip-select').value=String(index);
+  $('decision').value=decisions[clip.id].decision;$('reason').value=decisions[clip.id].reason;
+  $('meta').textContent=JSON.stringify(clip.metadata,null,2);$('status').textContent='Chargement du clip…';
+  try{
+    const tokens=cache.get(clip.id)||await unpackClip(clip);
+    if(version!==loadVersion)return;
+    cache.set(clip.id,tokens);
+    while(cache.size>3)cache.delete(cache.keys().next().value);
+    currentTokens=tokens;$('status').textContent='Prêt pour la revue. Les décisions restent en attente tant que tu ne les renseignes pas.';draw();
+  }catch(error){if(version===loadVersion)$('status').textContent=error.message;}
+}
+function draw(){
+  if(!currentTokens)return;
+  ctx.fillStyle='black';ctx.fillRect(0,0,$('grid').width,$('grid').height);ctx.font=`${ch-2}px monospace`;ctx.textBaseline='top';
+  const offset=frame*cells;
+  for(let r=0;r<data.contract.rows;r++)for(let c=0;c<data.contract.cols;c++){
+    const at=offset+r*data.contract.cols+c,glyph=currentTokens[at];if(glyph===0)continue;
+    const color=data.contract.palette[currentTokens[tokenCount+at]];
+    ctx.fillStyle=`rgb(${color.join(',')})`;ctx.fillText(data.contract.glyphs[glyph],c*cw,r*ch,cw);
+  }
+  $('frame-position').textContent=`Image ${frame+1}/${data.contract.frames}`;
+}
+function selectClip(next){if(!data.clips.length)return;index=(next+data.clips.length)%data.clips.length;frame=0;show();}
+$('prev').onclick=()=>selectClip(index-1);$('next').onclick=()=>selectClip(index+1);
+$('clip-select').onchange=()=>selectClip(Number($('clip-select').value));
+$('pause').onclick=()=>{playing=!playing;$('pause').textContent=playing?'Pause':'Lecture';};
+for(const id of ['decision','reason'])$(id).oninput=()=>{
+  if(data.clips.length)decisions[data.clips[index].id]={decision:$('decision').value,reason:$('reason').value};save();
+};
+$('reviewer').oninput=save;
+$('download').onclick=()=>{
+  if(!$('reviewer').value.trim()){alert('Renseigner le nom du relecteur avant l’export.');return;}
+  const url=URL.createObjectURL(new Blob([JSON.stringify(reviewValue(),null,2)],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='reviews.json';link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('import').onchange=async event=>{
+  try{restoreReview(JSON.parse(await event.target.files[0].text()));save();show();}catch(error){alert(error.message);}
+};
+for(let i=0;i<data.clips.length;i++){
+  const clip=data.clips[i],option=document.createElement('option');option.value=String(i);
+  option.textContent=`${i+1} — ${clip.metadata.original_label||clip.metadata.normalized_label||clip.id}`;$('clip-select').appendChild(option);
+}
+try{const saved=localStorage.getItem(storageKey);if(saved)restoreReview(JSON.parse(saved));}catch(error){/* Start with pending decisions. */}
+save();show();
+setInterval(()=>{if(playing&&currentTokens){frame=(frame+1)%data.contract.frames;draw();}},1000/data.contract.fps);
+</script>
+</html>

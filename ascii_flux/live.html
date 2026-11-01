@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII Flux</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  input {
+    position: fixed; left: 50%; bottom: 4vh; transform: translateX(-50%);
+    width: min(560px, 80vw); padding: 10px 0; border: 0; border-bottom: 1px solid #333;
+    background: transparent; color: #ddd; outline: none; text-align: center;
+    font: 20px ui-monospace, Consolas, monospace; caret-color: #ddd;
+  }
+  input:focus { border-bottom-color: #666; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<input id="t" autocomplete="off" spellcheck="false" autofocus aria-label="Consigne">
+<script>
+const canvas = document.getElementById('c'), ctx = canvas.getContext('2d'), input = document.getElementById('t');
+let cfg = null, frame = null, dirty = true;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = innerWidth * dpr; canvas.height = innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); dirty = true;
+}
+
+function draw() {
+  requestAnimationFrame(draw);
+  if (!dirty || !cfg || !frame) return;
+  dirty = false;
+  const W = innerWidth, H = innerHeight * 0.88;
+  // Grid aspect from the contract: cell height = cell ratio x cell width.
+  const cw = Math.min(W / cfg.cols, H / (cfg.rows * cfg.cell)), ch = cw * cfg.cell;
+  const x0 = (W - cw * cfg.cols) / 2, y0 = (H - ch * cfg.rows) / 2;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, innerHeight);
+  ctx.font = `${Math.floor(ch * 0.92)}px Consolas, ui-monospace, monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowBlur = ch * 0.35;
+  for (let r = 0; r < cfg.rows; r++) for (let c = 0; c < cfg.cols; c++) {
+    const i = r * cfg.cols + c, g = frame.g[i];
+    if (g === ' ') continue;
+    const p = cfg.palette[frame.c[i]] || [200, 200, 200];
+    const color = `rgb(${p[0]},${p[1]},${p[2]})`;
+    ctx.fillStyle = color; ctx.shadowColor = color;
+    ctx.fillText(g, x0 + (c + 0.5) * cw, y0 + (r + 0.5) * ch);
+  }
+}
+
+function connect() {
+  const source = new EventSource('/stream');
+  source.onmessage = e => {
+    const m = JSON.parse(e.data);
+    frame = { g: m.g, c: Uint8Array.from(atob(m.c), ch => ch.charCodeAt(0)) };
+    dirty = true;
+  };
+  source.onerror = () => { source.close(); setTimeout(connect, 1000); };
+}
+
+input.addEventListener('input', () => {
+  fetch('/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ prompt: input.value }) }).catch(() => {});
+});
+document.addEventListener('keydown', () => input.focus());
+
+fetch('/config').then(r => r.json()).then(c => { cfg = c; resize(); connect(); draw(); });
+addEventListener('resize', resize);
+</script>
+</body>
+</html>

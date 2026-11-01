@@ -1,0 +1,19 @@
+{
+  "reviewer": "user",
+  "reviewed_on": "2026-10-31",
+  "scope": "qualitative recognition of six generated stills, labels visible; not a forced-choice study or an animation review",
+  "human_statement": "aucun",
+  "interpreted_result": "no subject recognized on the presented sheet",
+  "checkpoint": "outputs/discrete-six-best/checkpoint.pt",
+  "checkpoint_step": 1000,
+  "inference_snapshot_sha256": "ef5ee99851f803e769462257e5c817e3e00eca4dd55bc22de1d8606388a1016c",
+  "tokens_sha256": "950299e071fce2620487cb6931a702d22585537877c5243c06b51f8a9b8ca740",
+  "gallery_sha256": "6c679bba963b5bf934427a3d68d191b3a1fc6f3567f5f9968f7181368c97a55e",
+  "gallery": "outputs/discrete-six-best/concepts.png",
+  "source_run": "data/runs/discrete-six-001",
+  "seed": 42,
+  "sampling_step": 32,
+  "subjects": ["cat", "dog", "horse", "bird", "fish", "person"],
+  "recognition_validated": false,
+  "formal_accuracy": null
+}
