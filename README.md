@@ -1,28 +1,56 @@
 # ASCII Flux v5
 
-Implémentation initiale de la spécification [AGENTS.md](AGENTS.md), au 31 octobre 2026.
-La v4.2 et ses fichiers sont conservés sans modification. Le convertisseur D1
-a produit 198 clips réels et reçu une validation visuelle globale de l'utilisateur.
-Des seuils initiaux en conservent 150 pour un premier essai GPU avec de vrais
-embeddings SigLIP. Ces premiers checkpoints vérifient la chaîne d'apprentissage ;
-la reconnaissance du modèle, la stabilité et les performances cibles restent à mesurer.
-Le corpus D2 contient 1 138 080 grilles dans 23 710 clips, dont 988 862 grilles
-distinctes après rééchantillonnage et augmentations. Les 20 000 pas d'apprentissage
-GPU sont terminés. **Le contrôle visuel a échoué : le NCA produit des taches
-et se dégrade en déroulé. F1 et F2 ne sont pas validés.** Le nombre de grilles
-et la baisse de perte n'établissent pas la reconnaissance.
+Implémentation de la spécification [AGENTS.md](AGENTS.md). La v4.2 est archivée
+hors du projet actif depuis le 1er novembre 2026 ([docs/CLEANUP.md](docs/CLEANUP.md)).
+Bilan détaillé des essais : [BILAN_V5.md](BILAN_V5.md). Poids et leur génération : [docs/WEIGHTS.md](docs/WEIGHTS.md).
 
-Trois essais natifs séparés comparent maintenant une reconstruction de glyphes
-masqués (3,78 M paramètres) et un transformeur causal par blocs de cellules
-(4,19 M), ainsi qu'un débruitage catégoriel des glyphes (3,78 M). Ils équilibrent six concepts réels : cat, dog, horse, bird, fish,
-person. Les partitions restent séparées par vidéo ; les poids et résultats
-sont explicitement expérimentaux. Ils ne remplacent pas le modèle de l'interface
-tant que leurs générations restent insuffisantes.
-Le retour utilisateur sur les six générations du dernier essai est **« aucun »**
-à la question des sujets reconnus. Le même utilisateur a jugé la majorité des
-huit références réelles « cheval » lisibles : le contrôle des données et celui
-du modèle sont conservés séparément. Ces retours sont qualitatifs, pas une mesure
-en choix forcé. Le bilan est dans `outputs/recognition-audit-001/conclusion.json`.
+## État au 1er novembre 2026
+
+**Chemin actif** : formes apprises d'un professeur image **hors ligne**, converties
+en glyphes de contour, puis transformeur masqué en cascade (silhouette → glyphes)
+conditionné par les jetons SigLIP. C'est le premier modèle dont les formes sont
+jugées lisibles par l'utilisateur (« on voit bien une amélioration »), y compris
+pour certains mots jamais entraînés. **Aucune animation n'est encore apprise** :
+les formes sont statiques une fois dessinées. Ce n'est pas une mesure en choix forcé.
+
+| Essai | Données | Résultat visuel |
+|---|---|---|
+| NCA `native-million-001`, 1,29 M | 1,1 M grilles vidéo (LV-VIS + YouTube-VIS) | taches, dérive en déroulé |
+| Masqué / causal / diffusion discrète, 3,8–4,2 M | 6 concepts vidéo | « aucun » sujet reconnu |
+| Masqué vocabulaire ouvert `masked-open-001`, 7,7 M | 793 labels vidéo | même ellipse pour tous les mots |
+| **Cascade `cascade-001`, 8,85 M** | **6 883 mots, formes professeur** | **silhouettes distinctes et lisibles** |
+
+Planches de référence (dossier local `outputs/`, non publié par Git) :
+`teacher-structure-probe-001` (données), `cascade-preview-001`,
+`cascade-preview-002-step24000` (10 mots jamais vus), `cascade-preview-003-final`.
+
+## Démarrage rapide (machine Radeon locale)
+
+```powershell
+# Interface en direct : canvas plein écran, saisie en bas
+.\Lancer_ASCII_Live.cmd
+# Reprendre la génération du corpus de formes (reprend au shard suivant)
+.\.venv-amd\Scripts\python.exe scripts/build_shape_corpus.py
+# Entraîner, puis prévisualiser
+.\.venv-amd\Scripts\python.exe scripts/train_cascade.py --output data/runs/cascade-002
+.\.venv-amd\Scripts\python.exe scripts/preview_cascade.py --checkpoint data/runs/cascade-002/best.pt --output outputs/cascade-preview-004 --words cat umbrella macaw
+```
+
+**Une seule tâche GPU à la fois.** La carte de 8 Go partagée entre génération,
+entraînement, interface ou un jeu ralentit tout : l'entraînement passe de
+0,16 s à 0,55 s par pas, et jusqu'à 6 s par pas avec la génération en parallèle.
+
+## Essais sur vidéos seules (31 octobre 2026)
+
+Le convertisseur D1 a produit 198 clips réels et reçu une validation visuelle
+globale de l'utilisateur. Le corpus D2 contient 1 138 080 grilles dans 23 710
+clips, dont 988 862 distinctes après rééchantillonnage et augmentations.
+**Le NCA entraîné 20 000 pas produit des taches et se dégrade en déroulé.**
+Trois essais natifs sur six concepts (cat, dog, horse, bird, fish, person) :
+reconstruction masquée (3,78 M), transformeur causal (4,19 M), débruitage
+catégoriel (3,78 M). Réponse de l'utilisateur sur les six générations :
+**« aucun »** sujet reconnu, alors qu'il jugeait lisibles la majorité de huit
+références réelles « cheval ». Bilan : `outputs/recognition-audit-001/conclusion.json`.
 
 ## Stratégie formes : professeur hors ligne + transformeur en cascade
 
@@ -47,27 +75,62 @@ d'un **professeur texte → image utilisé hors ligne** (décision consignée da
    patchs 2×2 puis glyphes et couleurs à l'intérieur, guidance sans classifieur,
    miroir horizontal des traits en augmentation.
 
-```powershell
-.\.venv-amd\Scripts\python.exe scripts/build_shape_corpus.py
-.\.venv-amd\Scripts\python.exe scripts/train_cascade.py --output data/runs/cascade-001
-.\.venv-amd\Scripts\python.exe scripts/preview_cascade.py --checkpoint data/runs/cascade-001/best.pt --output outputs/cascade-preview-001 --words cat horse giraffe
-```
+### Corpus de formes `data/v5/shapes-001` (en pause)
 
-Les formes sont statiques : le mouvement (vidéos réelles) reste à ajouter.
+État au 1er novembre 2026, 18 h 45 : **8 400 mots sur 11 298** (84 shards),
+23 823 grilles gardées, 121 mots sans aucune forme acceptée. Partitions par
+hachage du mot : 7 711 train, 252 val, 437 test_unseen. Rejets cumulés :
+14 816 sujets coupés par le bord, 3 132 sujets multiples, 1 752 trop petits.
+Vitesse : environ 4 s par mot avec la carte libre (images par lots de 4,
+jusqu'à 8 tentatives pour garder 3 formes). Les mots ImageNet-12k de fin de
+liste sont plus rarement bien cadrés que les mots courants.
 
-**Interface en direct** : double-cliquer sur `Lancer_ASCII_Live.cmd` (ou
-`scripts/live.py`), puis taper. Canvas plein écran, saisie en bas, aucun autre
-texte. Chaque image affichée est un pas d'échantillonnage du modèle
-(`ascii_flux/live.py`) : silhouette puis glyphes, environ 20 pas. Une nouvelle
-consigne est encodée une fois (anti-rebond 120 ms) et redessine la silhouette
-sans effacer la grille ; une case ne change que lorsque le modèle la décide.
-Une fois la forme terminée, la grille reste immobile : aucune animation n'est apprise.
+Réglages GPU appliqués par les scripts : `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1`
+(attention efficace) et `MIOPEN_FIND_MODE=FAST`. Le décodeur TAESD remplace le VAE
+complet (3,3 s → négligeable par image). BiRefNet tourne sur la Radeon grâce à
+`ascii_flux/deform.py` (0,07 s par image contre 10 s sur CPU).
 
-## Interface locale
+### Run `data/runs/cascade-001`
+
+- 8 851 326 paramètres : dimension 256, 8 blocs, 8 têtes, patchs 2×2.
+- Corpus figé aux 76 premiers shards : 6 883 mots d'entraînement, 225 mots de
+  validation jamais entraînés, 21 675 grilles. Le cache de jetons texte enregistre
+  ce nombre de shards ; la génération peut continuer pendant l'entraînement.
+- 40 000 pas, lots de 32, AdamW, cosinus, EMA 0,999, FP16. Meilleur état au
+  pas 29 000 (validation sur mots jamais entraînés). Durée 5 h 09, dont une
+  partie avec la carte partagée.
+- Lots de 64 : la mémoire déborde des 8 Go et chaque pas prend 1,4 s au lieu
+  de 0,16 s. `nn.MultiheadAttention` a été remplacé par une attention
+  directe (`scaled_dot_product_attention`) : ses copies de disposition étaient
+  le goulot sur ROCm.
+- Gain du texte sur la silhouette (CE sans texte − avec texte) : 0,011 sur la
+  validation, 0,022 sur test_unseen en fin d'essai. Ce proxy reste faible alors
+  que les planches montrent des formes distinctes par mot : la décision repose
+  sur la lecture visuelle, pas sur ce chiffre.
+- Lecture de l'auteur sur 7 mots jamais entraînés (planche finale) : parapluie,
+  ara (multicolore), chat, léopard des neiges, husky reconnaissables ;
+  tricératops et piano à queue approximatifs ; chimpanzé informe.
+
+### Interface en direct
+
+Double-cliquer sur `Lancer_ASCII_Live.cmd` (ou `scripts/live.py`), puis taper.
+Canvas plein écran, saisie en bas, aucun autre texte ; le navigateur s'ouvre
+une fois le modèle chargé et préchauffé. Chaque image affichée est un pas
+d'échantillonnage du modèle (`ascii_flux/live.py`, flux Server-Sent Events) :
+12 pas de silhouette puis 8 pas de glyphes. Une nouvelle consigne est encodée
+une fois (anti-rebond 120 ms, plus court que les 250 ms d'AGENTS.md à la demande
+d'un retour immédiat) et la silhouette est redessinée **sans effacer la grille** :
+une case affichée ne change que lorsque le modèle la décide. Effacer le texte
+vide l'écran. Mesuré avec la génération en parallèle : 15 à 20 images/s, première
+réaction ≈ 0,3 s. Une fois la forme terminée, la grille reste immobile.
+Quelques fragments isolés de silhouette peuvent subsister : ils viennent du modèle.
+
+## Ancienne interface (NCA, diagnostic)
 
 Double-cliquer sur **`Lancer_ASCII_Flux.cmd`**, ou ouvrir
 **http://127.0.0.1:8766** si le serveur tourne déjà. Le lanceur utilise le meilleur
-modèle de `data/runs/native-million-001/best.pt` et le GPU Radeon.
+modèle de `data/runs/native-million-001/best.pt` et le GPU Radeon. Ce serveur
+calcule en continu même sans visiteur : l'arrêter quand il ne sert pas.
 
 Un grand canvas noir affiche directement les glyphes et couleurs du modèle.
 La barre de saisie transmet chaque modification sans touche Entrée et sans délai
@@ -260,6 +323,20 @@ Quelques précisions appliquées :
   Python local. La cadence du modèle est indépendante du worker texte ; un
   changement de consigne ne réinitialise pas la grille.
 - `ascii_flux/evaluation.py` : diagnostics ≥500 pas et export ONNX avec parité.
+- `ascii_flux/teacher.py` : professeur hors ligne SD-Turbo + TAESD, détourage
+  BiRefNet_lite, rejets motivés. Jamais importé à l'inférence.
+- `ascii_flux/deform.py` : convolution déformable en PyTorch pur pour BiRefNet sur ROCm.
+- `ascii_flux/structure.py` : convertisseur à traits orientés, contrat
+  `ascii-v5-structure-rgb64-1` (glyphes ` .:+*#@-_|/\()'`).
+- `ascii_flux/shape_corpus.py` : vocabulaire, partitions par mot, shards NPZ + JSON.
+- `ascii_flux/cascade.py`, `cascade_training.py` : transformeur en cascade,
+  pas d'échantillonnage individuels (`silhouette_step`, `glyph_step`), entraînement
+  avec EMA, reprise et validation sur mots jamais entraînés.
+- `ascii_flux/live.py`, `live.html` : interface plein écran en direct.
+- `ascii_flux/text.py` : aussi `encode_tokens` (16 jetons SigLIP pour l'attention
+  croisée) et `label_phrases` (formulations génériques de labels).
+- Scripts : `build_shape_corpus.py`, `train_cascade.py`, `preview_cascade.py`,
+  `live.py`, `embed_phrases.py`.
 - `ASCII_Flux_v5_D1_F1.ipynb` : notebook Colab autonome contenant une copie de
   ces sources. À régénérer après changement avec `python scripts/build_notebook.py`.
 
@@ -277,6 +354,14 @@ python -m venv .venv
 Pas de Gradio, Cairo, VAE, Supra, segmentation ou conversion d'images dans
 l'inférence. Les dépendances du convertisseur ne sont pas importées par le runtime.
 Les bornes `transformers<5` et `huggingface-hub<1` sont conservées.
+
+Environnement Radeon `.venv-amd` (PyTorch 2.14.0 ROCm 10.1.0, `scripts/setup_radeon.ps1`) :
+le professeur ajoute `pip install -e ".[teacher]"` (diffusers, accelerate, timm,
+kornia, einops). **torchvision reste la build CPU 0.29.2** : l'index AMD ne publie
+que 0.28.0+rocm10.1.0, dont les opérateurs sont incompatibles avec torch 2.14
+(`torchvision::nms does not exist`). Ne pas l'installer. `pytest` n'est installé
+que dans `.venv` ; le test de `deform.py` contre torchvision y est sauté faute de
+torchvision et a été vérifié à la main dans `.venv-amd` (écart max 2e-6).
 
 ## D1 : préparer les données réelles
 
@@ -486,12 +571,18 @@ déroulé et export si disponible. Ses artefacts sont dans `outputs/analytical-s
 
 ## Travail restant
 
-1. Vérifier la qualité sur les nouvelles sources et affiner les seuils initiaux D1.
-2. Terminer D2, entraîner et comparer les architectures sur les mêmes partitions.
-3. Organiser une reconnaissance humaine en choix forcé, séparant concepts vus
-   et catégories réservées ; mesurer transitions, langues et fonctionnement long.
-4. Porter et chronométrer le pas ONNX dans WebGPU/WASM ; aucune cible de performance
-   ou compréhension ouverte n'est acquise à ce stade.
+1. Terminer le corpus de formes (2 898 mots) et réentraîner sur l'ensemble.
+2. **Mouvement** : reconvertir les clips vidéo existants avec `structure.py`,
+   ajouter une étape conditionnée par la grille précédente, mesurer le transfert
+   du mouvement vers les mots sans vidéo.
+3. Annoncer « concept inconnu » quand la consigne est loin de tous les mots
+   appris (distance d'embedding), au lieu de dessiner une tache.
+4. Convertisseur : intérieur moins chargé en `:`, couleurs plus vives ;
+   gabarit de prompt pour les sujets horizontaux (avion, poisson, guitare souvent rejetés).
+5. Reconnaissance humaine en choix forcé, mots vus et réservés ; langues
+   (français non mesuré) ; transitions ; fonctionnement long.
+6. Porter et chronométrer le pas dans WebGPU/WASM (F2 navigateur non réalisé :
+   l'interface actuelle calcule en Python local).
 
 ## Sources d'implémentation consultées
 

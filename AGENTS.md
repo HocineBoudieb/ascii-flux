@@ -68,6 +68,9 @@ crée une nouvelle version de dataset et invalide les poids.
 - Couleur : palette fixe quantifiée, *initiale* 64 couleurs, versionnée. Une
   cellule vide n'a pas de couleur. Une variante monochrome reste possible.
 - Jeton de sortie : deux têtes (glyphe, couleur), pas un produit cartésien.
+- Contrat actif du chemin formes (1er novembre 2026) : `ascii-v5-structure-rgb64-1`,
+  glyphes ` .:+*#@-_|/\()'` (rampe puis traits orientés), même grille et même palette.
+  Les corpus et poids de l'ancien contrat `ascii-v5-ramp-rgb64-1` en sont incompatibles.
 - Cadence du dataset *initiale* : 12 images/s, clips de 48 images. Le modèle peut
   tourner plus vite que la cadence des données ; ne pas annoncer plus d'images
   distinctes par seconde que celles réellement produites.
@@ -228,6 +231,13 @@ Environnement : `transformers<5` exige `huggingface-hub<1`, donc `gradio<6.17`.
 Installer les dépendances en début de session puis redémarrer le noyau ; ne jamais
 installer un paquet au milieu d'un noyau qui a déjà importé ses dépendances.
 Cairo n'est nécessaire qu'au rendu Lottie.
+
+GPU local (Radeon RX 9060 XT 8 Go, `.venv-amd`, PyTorch 2.14.0 ROCm 10.1.0) :
+une seule tâche GPU à la fois (génération, entraînement, interface ou jeu se
+ralentissent mutuellement) ; lots de 32 au plus pour le transformeur en cascade
+(64 déborde la mémoire) ; garder torchvision 0.29.2 CPU (la build AMD 0.28 casse
+les opérateurs) ; scripts lancés avec `TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1`
+et `MIOPEN_FIND_MODE=FAST`.
 
 ## Règles de travail
 
