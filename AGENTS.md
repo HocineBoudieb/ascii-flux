@@ -30,9 +30,10 @@ du **mouvement**. Le modèle cible devient un transformeur masqué avec attentio
 croisée sur les jetons texte, en cascade silhouette → glyphes. Aucun générateur
 d'images à l'inférence : le contrat d'inférence ci-dessous reste inchangé.
 
-Statut : tout ce qui suit est une spécification. Aucun dataset v5 ni aucun poids
-v5 n'existe encore. Les choix marqués *initial* sont des points de départ à mesurer,
-pas des décisions validées.
+Statut au 1er novembre 2026 : les corpus locaux et des poids expérimentaux v5
+existent. Le run cascade-001 a atteint 40 000 pas ; son meilleur checkpoint est
+au pas 29 000. La reconnaissance et le mouvement appris restent à valider.
+Les choix marqués *initial* restent des points de départ à mesurer.
 
 ## Contrat d'inférence
 
@@ -210,8 +211,9 @@ tant qu'elles ne sont pas mesurées.
 
 ## Héritage v4.2
 
-Le notebook v4.2 (`ASCII_Flux_OpenVocabulary_couleur_interface.ipynb`) est gelé
-comme référence. Ne plus y ajouter de fonctionnalités ; corrections seulement.
+Depuis le nettoyage du 1er novembre 2026, la v4.2 et son notebook sont retirés du
+projet actif. Leur référence locale est conservée dans le dossier ignoré
+`data/local-archives/2026-11-01/`. Ne pas les réintroduire dans le chemin v5.
 
 - **Réutilisé dans le convertisseur** : rendu couleur (ton, rampe, saturation,
   hystérésis), lecteur HTML/canvas de l'interface, conventions de provenance.

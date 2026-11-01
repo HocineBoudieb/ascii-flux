@@ -19,7 +19,7 @@ test = ["pytest>=8,<10"]
 ascii-flux = "ascii_flux.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["ascii_flux*"]
+include = ["ascii_flux", "ascii_flux.*"]
 
 [tool.setuptools.package-data]
 ascii_flux = ["*.html"]
